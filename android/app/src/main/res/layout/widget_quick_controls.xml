@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/salati_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_modern_bg"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="9dp">
+
+    <TextView
+        android:id="@id/salati_widget_toggle_notifications"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/widget_pill_on"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_bold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="الصوت"
+        android:textColor="@color/widget_text"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@id/salati_widget_toggle_next_alert"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_pill_on"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_bold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="التنبيه"
+        android:textColor="@color/widget_text"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@id/salati_widget_toggle_touch_lock"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_pill_off"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_bold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="الفتح"
+        android:textColor="@color/widget_text"
+        android:textSize="13sp" />
+
+</LinearLayout>

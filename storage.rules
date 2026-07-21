@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        (
+          request.auth.token.admin == true ||
+          request.auth.token.superAdmin == true
+        );
+    }
+
+    function isImageUpload(maxSizeMb) {
+      return request.resource != null &&
+        request.resource.size < maxSizeMb * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    function isAudioUpload(maxSizeMb) {
+      return request.resource != null &&
+        request.resource.size < maxSizeMb * 1024 * 1024 &&
+        request.resource.contentType.matches('audio/.*');
+    }
+
+    match /users/{uid}/profile/{fileName} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) && isImageUpload(5);
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    match /content/images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImageUpload(8);
+    }
+
+    match /content/audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isAudioUpload(25);
+    }
+
+    match /admin/{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

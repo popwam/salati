@@ -1,0 +1,13 @@
+# Copy this file to android/key.properties on your local machine only.
+# Do not commit real passwords, aliases, or keystore paths.
+#
+# Recommended production setup:
+# - Move the release keystore outside this repository.
+# - Point storeFile to that local absolute path or a CI secret-mounted path.
+# - Store passwords in a local-only file or CI secret manager.
+#
+# Example:
+# storePassword=REPLACE_WITH_LOCAL_SECRET
+# keyPassword=REPLACE_WITH_LOCAL_SECRET
+# keyAlias=release
+# storeFile=C:\\secure\\salati\\release-keystore.jks

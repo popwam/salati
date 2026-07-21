@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="320dp"
+    android:minHeight="70dp"
+    android:updatePeriodMillis="900000"
+    android:initialLayout="@layout/widget_today_prayer_times_strip"
+    android:description="@string/widget_today_prayer_times_description"
+    android:previewImage="@drawable/preview_widget_prayer_times"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

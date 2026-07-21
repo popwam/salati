@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/salati_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_modern_bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@id/salati_widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_bold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="صلاتي"
+        android:textColor="@color/widget_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@id/salati_widget_body"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="9dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_regular"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="5"
+        android:text="افتح التطبيق لتحديث الودجت"
+        android:textColor="@color/widget_text"
+        android:textDirection="rtl"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@id/salati_widget_reference"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_regular"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="تطبيق صلاتي"
+        android:textColor="@color/widget_secondary"
+        android:textSize="12sp" />
+
+</LinearLayout>

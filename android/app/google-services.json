@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "615117501330",
+    "project_id": "salati-cf0db",
+    "storage_bucket": "salati-cf0db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615117501330:android:8f54d978fc21856579074b",
+        "android_client_info": {
+          "package_name": "com.popwam.salati"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "615117501330-ct4s5cchuo5tf7rv4f961p1qnm0tgbav.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.popwam.salati",
+            "certificate_hash": "0929ab89ca0040f9954a6d442b4906ec8feb8b89"
+          }
+        },
+        {
+          "client_id": "615117501330-9r0b344p8qgd5l9sli3vt8342qh6s825.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOfPhzMLAGKhXS1q8H6IFBdw2gDTNcdZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "615117501330-9r0b344p8qgd5l9sli3vt8342qh6s825.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "615117501330-2ld8f26cm5h7k15b2elldvb4hsiknglk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.popwam.salati"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

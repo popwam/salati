@@ -1,0 +1,1084 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // Authentication, roles, and permissions
+    // ============================================================
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function hasCurrentUserDoc() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserDoc() {
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      ).data;
+    }
+
+    function targetUserDoc(userId) {
+      return get(
+        /databases/$(database)/documents/users/$(userId)
+      ).data;
+    }
+
+    function isSuperAdmin() {
+      return hasCurrentUserDoc() &&
+        currentUserDoc().keys().hasAny(['role']) &&
+        currentUserDoc().role in [
+          'superAdmin',
+          'super_admin'
+        ];
+    }
+
+    function hasPermission(permission) {
+      return isSuperAdmin() ||
+        (
+          hasCurrentUserDoc() &&
+          currentUserDoc().keys().hasAny(['permissions']) &&
+          currentUserDoc().permissions is list &&
+          currentUserDoc().permissions.hasAny([permission])
+        );
+    }
+
+    function isDashboardAdmin() {
+      return isSuperAdmin() ||
+        (
+          hasCurrentUserDoc() &&
+          (
+            (
+              currentUserDoc().keys().hasAny(['role']) &&
+              currentUserDoc().role == 'admin'
+            ) ||
+            (
+              currentUserDoc().keys().hasAny(['isAdmin']) &&
+              currentUserDoc().isAdmin == true
+            ) ||
+            hasPermission('dashboard.view')
+          )
+        );
+    }
+
+    function targetIsSuperAdmin(userId) {
+      return exists(
+          /databases/$(database)/documents/users/$(userId)
+        ) &&
+        targetUserDoc(userId).keys().hasAny(['role']) &&
+        targetUserDoc(userId).role in [
+          'superAdmin',
+          'super_admin'
+        ];
+    }
+
+    function canManageTargetUser(userId) {
+      return isSuperAdmin() ||
+        (
+          signedIn() &&
+          !targetIsSuperAdmin(userId) &&
+          (
+            hasPermission('users.manage') ||
+            hasPermission('users.points.manage') ||
+            hasPermission('users.plan.manage') ||
+            hasPermission('ai_limits.manage')
+          )
+        );
+    }
+
+    // ============================================================
+    // Shared validation helpers
+    // ============================================================
+
+    function validStringOrNull(value, maxSize) {
+      return value == null ||
+        (
+          value is string &&
+          value.size() <= maxSize
+        );
+    }
+
+    function validInitialPlan(value) {
+      return value == 'free' ||
+        (
+          exists(
+            /databases/$(database)/documents/settings/app_config
+          ) &&
+          get(
+            /databases/$(database)/documents/settings/app_config
+          ).data.keys().hasAny(['defaultUserPlanId']) &&
+          value == get(
+            /databases/$(database)/documents/settings/app_config
+          ).data.defaultUserPlanId
+        );
+    }
+
+    function safePrivateDoc() {
+      return request.resource.data is map &&
+        !request.resource.data.keys().hasAny([
+          'role',
+          'roles',
+          'permissions',
+          'isAdmin',
+          'isSuperAdmin',
+          'admin',
+          'adminSecret',
+          'apiKey',
+          'secret',
+          'token',
+          'password',
+          'privateKey'
+        ]);
+    }
+
+    // ============================================================
+    // User profile creation and update
+    // ============================================================
+
+    function ownUserCreateAllowed(userId) {
+      return isOwner(userId) &&
+
+        request.resource.data.keys().hasOnly([
+          'uid',
+          'name',
+          'email',
+          'phone',
+          'photoUrl',
+          'avatarUrl',
+          'locale',
+          'plan',
+          'planId',
+          'subscriptionStatus',
+          'role',
+          'permissions',
+          'isAdmin',
+          'points',
+          'prayerScore',
+          'dailyPrayerScore',
+          'pointsUpdatedAt',
+          'isBlocked',
+          'aiUsageLimitOverride',
+          'proTrialRewardedAdsWatched',
+          'proTrialLastRewardedAdAt',
+          'proTrialSource',
+          'proTrialEndsAt',
+          'createdAt',
+          'updatedAt',
+          'lastLoginAt',
+          'lastSeenAt',
+          'clientClockProbeAt'
+        ]) &&
+
+        request.resource.data.keys().hasAny(['uid']) &&
+        request.resource.data.uid == userId &&
+
+        (
+          !request.resource.data.keys().hasAny(['name']) ||
+          validStringOrNull(request.resource.data.name, 120)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['email']) ||
+          validStringOrNull(request.resource.data.email, 254)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['phone']) ||
+          validStringOrNull(request.resource.data.phone, 40)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['photoUrl']) ||
+          validStringOrNull(request.resource.data.photoUrl, 2048)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['avatarUrl']) ||
+          validStringOrNull(request.resource.data.avatarUrl, 2048)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['role']) ||
+          request.resource.data.role == 'user'
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['permissions']) ||
+          (
+            request.resource.data.permissions is list &&
+            request.resource.data.permissions.size() == 0
+          )
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['isAdmin']) ||
+          request.resource.data.isAdmin == false
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['points']) ||
+          (
+            request.resource.data.points is int &&
+            request.resource.data.points == 0
+          )
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['prayerScore']) ||
+          (
+            request.resource.data.prayerScore is int &&
+            request.resource.data.prayerScore == 0
+          )
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['dailyPrayerScore']) ||
+          (
+            request.resource.data.dailyPrayerScore is int &&
+            request.resource.data.dailyPrayerScore == 0
+          )
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['isBlocked']) ||
+          request.resource.data.isBlocked == false
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['aiUsageLimitOverride']) ||
+          request.resource.data.aiUsageLimitOverride == null
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['planId']) ||
+          validInitialPlan(request.resource.data.planId)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['plan']) ||
+          validInitialPlan(request.resource.data.plan)
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny(['subscriptionStatus']) ||
+          request.resource.data.subscriptionStatus in [
+            'active',
+            'none'
+          ]
+        ) &&
+
+        (
+          !request.resource.data.keys().hasAny([
+            'proTrialRewardedAdsWatched'
+          ]) ||
+          (
+            request.resource.data.proTrialRewardedAdsWatched is int &&
+            request.resource.data.proTrialRewardedAdsWatched == 0
+          )
+        ) &&
+
+        !request.resource.data.keys().hasAny([
+          'proTrialLastRewardedAdAt',
+          'proTrialSource',
+          'proTrialEndsAt'
+        ]);
+    }
+
+    function proTrialActivationAllowed() {
+      return request.resource.data.keys().hasAll([
+          'plan',
+          'planId',
+          'subscriptionStatus',
+          'proTrialRewardedAdsWatched',
+          'proTrialSource',
+          'proTrialEndsAt'
+        ]) &&
+        (
+          !resource.data.keys().hasAny(['plan']) ||
+          resource.data.plan != 'pro'
+        ) &&
+        (
+          !resource.data.keys().hasAny(['planId']) ||
+          resource.data.planId != 'pro'
+        ) &&
+        request.resource.data.plan == 'pro' &&
+        request.resource.data.planId == 'pro' &&
+        request.resource.data.subscriptionStatus == 'trial' &&
+        request.resource.data.proTrialRewardedAdsWatched == 5 &&
+        request.resource.data.proTrialSource == 'rewarded_ads_5' &&
+        request.resource.data.proTrialEndsAt is timestamp &&
+        request.resource.data.proTrialEndsAt > request.time;
+    }
+
+    function ownUserUpdateAllowed(userId) {
+      let changed =
+        request.resource.data.diff(resource.data).affectedKeys();
+
+      return isOwner(userId) &&
+
+        changed.hasOnly([
+          'name',
+          'email',
+          'phone',
+          'photoUrl',
+          'avatarUrl',
+          'locale',
+          'updatedAt',
+          'lastLoginAt',
+          'lastSeenAt',
+          'clientClockProbeAt',
+          'points',
+          'prayerScore',
+          'dailyPrayerScore',
+          'pointsUpdatedAt',
+          'plan',
+          'planId',
+          'subscriptionStatus',
+          'proTrialRewardedAdsWatched',
+          'proTrialLastRewardedAdAt',
+          'proTrialSource',
+          'proTrialEndsAt'
+        ]) &&
+
+        (
+          !changed.hasAny(['name']) ||
+          !request.resource.data.keys().hasAny(['name']) ||
+          validStringOrNull(request.resource.data.name, 120)
+        ) &&
+
+        (
+          !changed.hasAny(['email']) ||
+          !request.resource.data.keys().hasAny(['email']) ||
+          validStringOrNull(request.resource.data.email, 254)
+        ) &&
+
+        (
+          !changed.hasAny(['phone']) ||
+          !request.resource.data.keys().hasAny(['phone']) ||
+          validStringOrNull(request.resource.data.phone, 40)
+        ) &&
+
+        (
+          !changed.hasAny(['photoUrl']) ||
+          !request.resource.data.keys().hasAny(['photoUrl']) ||
+          validStringOrNull(request.resource.data.photoUrl, 2048)
+        ) &&
+
+        (
+          !changed.hasAny(['avatarUrl']) ||
+          !request.resource.data.keys().hasAny(['avatarUrl']) ||
+          validStringOrNull(request.resource.data.avatarUrl, 2048)
+        ) &&
+
+        (
+          !changed.hasAny(['points']) ||
+          (
+            request.resource.data.keys().hasAny(['points']) &&
+            request.resource.data.points is int &&
+            request.resource.data.points >= 0 &&
+            (
+              (
+                !resource.data.keys().hasAny(['points']) &&
+                request.resource.data.points == 0
+              ) ||
+              (
+                resource.data.keys().hasAny(['points']) &&
+                resource.data.points is int &&
+                request.resource.data.points <= resource.data.points
+              )
+            )
+          )
+        ) &&
+
+        (
+          !changed.hasAny(['plan']) ||
+          (
+            !resource.data.keys().hasAny(['plan']) &&
+            validInitialPlan(request.resource.data.plan)
+          ) ||
+          proTrialActivationAllowed()
+        ) &&
+
+        (
+          !changed.hasAny(['planId']) ||
+          (
+            !resource.data.keys().hasAny(['planId']) &&
+            validInitialPlan(request.resource.data.planId)
+          ) ||
+          proTrialActivationAllowed()
+        ) &&
+
+        (
+          !changed.hasAny(['subscriptionStatus']) ||
+          (
+            !resource.data.keys().hasAny(['subscriptionStatus']) &&
+            request.resource.data.subscriptionStatus in [
+              'active',
+              'none'
+            ]
+          ) ||
+          proTrialActivationAllowed()
+        ) &&
+
+        (
+          !changed.hasAny(['prayerScore']) ||
+          (
+            request.resource.data.keys().hasAny(['prayerScore']) &&
+            request.resource.data.prayerScore is int &&
+            request.resource.data.prayerScore >= 0
+          )
+        ) &&
+
+        (
+          !changed.hasAny(['dailyPrayerScore']) ||
+          (
+            request.resource.data.keys().hasAny(['dailyPrayerScore']) &&
+            request.resource.data.dailyPrayerScore is int &&
+            request.resource.data.dailyPrayerScore >= 0
+          )
+        ) &&
+
+        (
+          !changed.hasAny(['proTrialRewardedAdsWatched']) ||
+          (
+            request.resource.data.keys().hasAny([
+              'proTrialRewardedAdsWatched'
+            ]) &&
+            request.resource.data.proTrialRewardedAdsWatched is int &&
+            request.resource.data.proTrialRewardedAdsWatched >= 0 &&
+            request.resource.data.proTrialRewardedAdsWatched <= 5 &&
+            (
+              (
+                !resource.data.keys().hasAny([
+                  'proTrialRewardedAdsWatched'
+                ]) &&
+                request.resource.data.proTrialRewardedAdsWatched in [0, 1]
+              ) ||
+              (
+                resource.data.keys().hasAny([
+                  'proTrialRewardedAdsWatched'
+                ]) &&
+                resource.data.proTrialRewardedAdsWatched is int &&
+                request.resource.data.proTrialRewardedAdsWatched <=
+                  resource.data.proTrialRewardedAdsWatched + 1
+              )
+            )
+          )
+        ) &&
+
+        (
+          !changed.hasAny(['proTrialSource']) ||
+          (
+            request.resource.data.keys().hasAny(['proTrialSource']) &&
+            request.resource.data.proTrialSource == 'rewarded_ads_5'
+          )
+        ) &&
+
+        (
+          !changed.hasAny(['proTrialEndsAt']) ||
+          proTrialActivationAllowed()
+        );
+    }
+
+    function adminUserUpdateAllowed(userId) {
+      let changed =
+        request.resource.data.diff(resource.data).affectedKeys();
+
+      return isSuperAdmin() ||
+        (
+          canManageTargetUser(userId) &&
+
+          changed.hasOnly([
+            'name',
+            'email',
+            'phone',
+            'photoUrl',
+            'avatarUrl',
+            'locale',
+            'permissions',
+            'points',
+            'prayerScore',
+            'dailyPrayerScore',
+            'pointsUpdatedAt',
+            'plan',
+            'planId',
+            'role',
+            'isAdmin',
+            'isBlocked',
+            'subscriptionStatus',
+            'aiUsageLimitOverride',
+            'proTrialRewardedAdsWatched',
+            'proTrialLastRewardedAdAt',
+            'proTrialSource',
+            'proTrialEndsAt',
+            'updatedAt',
+            'lastLoginAt',
+            'lastSeenAt'
+          ]) &&
+
+          (
+            !changed.hasAny([
+              'name',
+              'email',
+              'phone',
+              'photoUrl',
+              'avatarUrl',
+              'locale',
+              'permissions',
+              'lastLoginAt',
+              'lastSeenAt'
+            ]) ||
+            hasPermission('users.manage')
+          ) &&
+
+          (
+            !changed.hasAny([
+              'points',
+              'prayerScore',
+              'dailyPrayerScore',
+              'pointsUpdatedAt'
+            ]) ||
+            hasPermission('users.points.manage')
+          ) &&
+
+          (
+            !changed.hasAny([
+              'plan',
+              'planId',
+              'role',
+              'isAdmin',
+              'isBlocked',
+              'subscriptionStatus',
+              'proTrialRewardedAdsWatched',
+              'proTrialLastRewardedAdAt',
+              'proTrialSource',
+              'proTrialEndsAt'
+            ]) ||
+            hasPermission('users.plan.manage')
+          ) &&
+
+          (
+            !changed.hasAny(['aiUsageLimitOverride']) ||
+            hasPermission('ai_limits.manage')
+          )
+        );
+    }
+
+    // ============================================================
+    // Points and entitlement validation
+    // ============================================================
+
+    function safeSpendLedger(userId) {
+      return isOwner(userId) &&
+
+        request.resource.data.keys().hasOnly([
+          'type',
+          'amount',
+          'reason',
+          'before',
+          'after',
+          'createdAt'
+        ]) &&
+
+        request.resource.data.type == 'spend' &&
+        request.resource.data.amount is int &&
+        request.resource.data.amount > 0 &&
+        request.resource.data.reason is string &&
+        request.resource.data.reason.size() <= 160 &&
+        request.resource.data.reason in [
+          'quran_share_image'
+        ] &&
+        request.resource.data.before is int &&
+        request.resource.data.after is int &&
+        request.resource.data.after >= 0 &&
+        request.resource.data.after ==
+          request.resource.data.before -
+          request.resource.data.amount &&
+
+        get(
+          /databases/$(database)/documents/users/$(userId)
+        ).data.points == request.resource.data.before &&
+
+        getAfter(
+          /databases/$(database)/documents/users/$(userId)
+        ).data.points == request.resource.data.after;
+    }
+
+    function safeEntitlement(entitlementId) {
+      return request.resource.data.keys().hasOnly([
+          'featureKey',
+          'enabled',
+          'source',
+          'title',
+          'description',
+          'storeItemId',
+          'storeItemType',
+          'storeItemValue',
+          'pricePoints',
+          'endsAt',
+          'updatedAt',
+          'createdAt'
+        ]) &&
+        request.resource.data.featureKey == entitlementId &&
+        request.resource.data.enabled == true &&
+        request.resource.data.source in [
+          'store_points',
+          'free_default',
+          'rewarded_ads'
+        ];
+    }
+
+    // ============================================================
+    // Users and private user data
+    // ============================================================
+
+    match /users/{userId} {
+      allow read:
+        if isOwner(userId) || canManageTargetUser(userId);
+
+      allow create:
+        if ownUserCreateAllowed(userId) ||
+          canManageTargetUser(userId);
+
+      allow update:
+        if ownUserUpdateAllowed(userId) ||
+          adminUserUpdateAllowed(userId);
+
+      allow delete:
+        if isSuperAdmin();
+
+      match /points_ledger/{ledgerId} {
+        allow read:
+          if isOwner(userId) ||
+            hasPermission('users.points.manage');
+
+        allow create:
+          if safeSpendLedger(userId) ||
+            hasPermission('users.points.manage');
+
+        allow update, delete:
+          if false;
+      }
+
+      match /entitlements/{entitlementId} {
+        allow read:
+          if isOwner(userId) ||
+            canManageTargetUser(userId);
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safeEntitlement(entitlementId)
+          ) ||
+          canManageTargetUser(userId);
+
+        allow delete:
+          if isSuperAdmin();
+      }
+
+      match /usage/ai {
+        allow read, create, update:
+          if isOwner(userId) ||
+            isSuperAdmin() ||
+            (
+              !targetIsSuperAdmin(userId) &&
+              hasPermission('ai_limits.manage')
+            );
+
+        allow delete:
+          if isSuperAdmin();
+      }
+
+      match /quran_progress/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /adhkar_progress/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /prayer_settings/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /prayer_reflections/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /sync/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /settings/{docId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+      }
+
+      match /custom_dhikr_categories/{categoryId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+
+        match /items/{itemId} {
+          allow read:
+            if isOwner(userId) || isSuperAdmin();
+
+          allow create, update:
+            if (
+              isOwner(userId) &&
+              safePrivateDoc()
+            ) ||
+            isSuperAdmin();
+
+          allow delete:
+            if isOwner(userId) || isSuperAdmin();
+        }
+      }
+
+      match /custom_dua_categories/{categoryId} {
+        allow read:
+          if isOwner(userId) || isSuperAdmin();
+
+        allow create, update:
+          if (
+            isOwner(userId) &&
+            safePrivateDoc()
+          ) ||
+          isSuperAdmin();
+
+        allow delete:
+          if isOwner(userId) || isSuperAdmin();
+
+        match /items/{itemId} {
+          allow read:
+            if isOwner(userId) || isSuperAdmin();
+
+          allow create, update:
+            if (
+              isOwner(userId) &&
+              safePrivateDoc()
+            ) ||
+            isSuperAdmin();
+
+          allow delete:
+            if isOwner(userId) || isSuperAdmin();
+        }
+      }
+    }
+
+    // ============================================================
+    // Public application configuration
+    // Guest users can read these documents without authentication.
+    // Never store secrets, API keys, or private credentials here.
+    // ============================================================
+
+    match /settings/{docId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if isDashboardAdmin() ||
+          hasPermission('app_config.manage');
+    }
+
+    match /remote_app_config/{docId} {
+      allow read:
+        if docId != 'draft' ||
+          isDashboardAdmin();
+
+      allow create, update, delete:
+        if hasPermission('app_config.manage');
+    }
+
+    // ============================================================
+    // Public catalogs and localization
+    // Public read avoids first-launch permission errors.
+    // Keep unpublished drafts in separate admin-only collections.
+    // ============================================================
+
+    match /plans/{planId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('subscriptions.manage');
+    }
+
+    match /languages/{languageId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('languages.manage');
+    }
+
+    match /store_items/{itemId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('store.manage');
+    }
+
+    match /roles/{roleId} {
+      allow read:
+        if isDashboardAdmin();
+
+      allow create, update, delete:
+        if isSuperAdmin();
+    }
+
+    // ============================================================
+    // Legacy public Dhikr and Dua paths
+    // Kept for compatibility with the older working application.
+    // ============================================================
+
+    match /dhikr_categories/{categoryId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('azkar.manage');
+
+      match /items/{itemId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if hasPermission('azkar.manage');
+      }
+    }
+
+    match /dua_categories/{categoryId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('duas.manage');
+
+      match /items/{itemId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if hasPermission('duas.manage');
+      }
+    }
+
+    // ============================================================
+    // New content hierarchy
+    // ============================================================
+
+    match /content/adhkar/categories/{categoryId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('azkar.manage');
+
+      match /items/{itemId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if hasPermission('azkar.manage');
+      }
+    }
+
+    match /content/dua/categories/{categoryId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if hasPermission('duas.manage');
+
+      match /items/{itemId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if hasPermission('duas.manage');
+      }
+    }
+
+    match /content/quran_assets/items/{assetId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if isSuperAdmin() ||
+          hasPermission('quran.manage');
+
+      match /page_map/{pageId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if isSuperAdmin() ||
+            hasPermission('quran.manage');
+      }
+    }
+
+    match /content/adhan_sounds/items/{soundId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if isSuperAdmin() ||
+          hasPermission('adhan.manage');
+    }
+
+    match /content/hadith_packs/packs/{packId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if isSuperAdmin() ||
+          hasPermission('hadith.manage');
+
+      match /items/{itemId} {
+        allow read:
+          if true;
+
+        allow create, update, delete:
+          if isSuperAdmin() ||
+            hasPermission('hadith.manage');
+      }
+    }
+
+    match /content/lesson_media/items/{lessonId} {
+      allow read:
+        if true;
+
+      allow create, update, delete:
+        if isSuperAdmin() ||
+          hasPermission('lessons.manage');
+    }
+
+    match /content/halaqat/rooms/{roomId} {
+      allow read:
+        if isDashboardAdmin();
+
+      allow create, update, delete:
+        if isSuperAdmin() ||
+          hasPermission('halaqat.manage');
+    }
+
+    // ============================================================
+    // Administrator audit logs
+    // ============================================================
+
+    match /admin_logs/{logId} {
+      allow read:
+        if isDashboardAdmin();
+
+      allow create:
+        if isDashboardAdmin();
+
+      allow update, delete:
+        if false;
+    }
+
+    match /admin_audit_logs/{logId} {
+      allow read:
+        if isDashboardAdmin();
+
+      allow create:
+        if isDashboardAdmin();
+
+      allow update, delete:
+        if false;
+    }
+
+    // ============================================================
+    // Default deny
+    // ============================================================
+
+    match /{document=**} {
+      allow read, write:
+        if false;
+    }
+  }
+}

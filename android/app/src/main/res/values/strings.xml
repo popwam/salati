@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Salati</string>
+    <string name="app_description">Prayer times, Quran reading, adhkar, reminders, and account settings.</string>
+    <string name="widget_random_ayah_name">صلاتي - آية اليوم</string>
+    <string name="widget_random_ayah_description">يعرض آية عشوائية من الآيات المفضلة.</string>
+    <string name="widget_calendar_name">صلاتي - التقويم</string>
+    <string name="widget_calendar_description">يعرض التقويم الهجري والميلادي.</string>
+    <string name="widget_today_prayer_times_name">صلاتي - مواقيت اليوم</string>
+    <string name="widget_today_prayer_times_description">يعرض مواقيت الصلاة اليومية في شريط سريع.</string>
+    <string name="widget_next_prayer_name">صلاتي - الصلاة القادمة</string>
+    <string name="widget_next_prayer_description">يعرض الصلاة القادمة والوقت المتبقي.</string>
+    <string name="widget_custom_ayah_name">صلاتي - آية مخصصة</string>
+    <string name="widget_custom_ayah_description">يعرض آخر آية اخترتها من التطبيق.</string>
+    <string name="widget_interactive_quran_name">صلاتي - قراءة القرآن</string>
+    <string name="widget_interactive_quran_description">يعرض قراءة مختصرة مع أزرار السابق والتالي.</string>
+    <string name="widget_quick_controls_name">صلاتي - تحكم سريع</string>
+    <string name="widget_quick_controls_description">أزرار سريعة للإشعارات والتنبيه وقفل اللمس.</string>
+    <string name="widget_points_rating_name">صلاتي - النقاط والتقييم</string>
+    <string name="widget_points_rating_description">يعرض نقاطك وتقييم الصلاة.</string>
+    <string name="widget_favorite_azkar_name">صلاتي - ذكر مفضل</string>
+    <string name="widget_favorite_azkar_description">يعرض ذكرًا عشوائيًا من المفضلة.</string>
+</resources>

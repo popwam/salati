@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="salati_widget_root" type="id" />
+    <item name="salati_widget_title" type="id" />
+    <item name="salati_widget_body" type="id" />
+    <item name="salati_widget_reference" type="id" />
+    <item name="salati_widget_button_previous" type="id" />
+    <item name="salati_widget_button_next" type="id" />
+    <item name="salati_widget_toggle_notifications" type="id" />
+    <item name="salati_widget_toggle_next_alert" type="id" />
+    <item name="salati_widget_toggle_touch_lock" type="id" />
+</resources>

@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "staging": "salati-cf0db",
+    "default": "salati-cf0db"
+  },
+  "targets": {},
+  "etags": {}
+}

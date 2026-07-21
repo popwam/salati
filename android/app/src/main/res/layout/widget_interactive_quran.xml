@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/salati_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_modern_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@id/salati_widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_bold"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="قراءة القرآن"
+        android:textColor="@color/widget_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@id/salati_widget_body"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="@font/uthmanic_hafs"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="5"
+        android:text="افتح التطبيق لتحديث القراءة"
+        android:textColor="@color/widget_text"
+        android:textDirection="rtl"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@id/salati_widget_reference"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="@font/cairo_regular"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="آخر موضع"
+        android:textColor="@color/widget_secondary"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="9dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@id/salati_widget_button_previous"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_off"
+            android:fontFamily="@font/cairo_bold"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="السابق"
+            android:textColor="@color/widget_text"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@id/salati_widget_button_next"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_on"
+            android:fontFamily="@font/cairo_bold"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="التالي"
+            android:textColor="@color/widget_text"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+</LinearLayout>
