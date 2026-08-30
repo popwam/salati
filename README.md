@@ -23,6 +23,19 @@ flutter run -d chrome
 - Runtime config files are present in `lib/firebase_options.dart` and `android/app/google-services.json`.
 - Firebase bootstraps from `lib/app/bootstrap/firebase_bootstrap.dart`.
 
+## Railway legal pages
+
+Railway automatically detects the root `Dockerfile`. The container serves the
+static legal pages from `public/` and listens on Railway's injected `PORT`.
+
+- Health check: `/health`
+- Privacy policy: `/privacy-policy`
+- Account deletion: `/account-deletion`
+- Partial data deletion: `/data-deletion`
+
+After deployment, verify that each public URL returns HTTP 200 before entering
+it in Google Play Console.
+
 ## Docs
 
 - `docs/firebase_emulator_guide.md`

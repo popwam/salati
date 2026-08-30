@@ -24,7 +24,9 @@ import '../../prayer/presentation/prayer_screen.dart';
 import '../../prayer/services/prayer_notification_scheduler.dart';
 import '../../quran/data/local_quran_progress_repository.dart';
 import '../../quran/presentation/quran_reader_support.dart';
-import '../../quran/presentation/quran_screen.dart';
+import '../data/islamic_content_provider.dart';
+import 'islamic_provider_screen.dart';
+import 'salati_dashboard_screen.dart';
 
 const _supportedLocaleCodes = <String>[
   'ar',
@@ -73,7 +75,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const int _rootIndex = 2;
+  static const int _rootIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static const _exitHint = 'اضغط مرة أخرى للخروج';
   late int _currentIndex;
@@ -83,20 +85,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static List<NavItem> _items(SalatiLocalizations l10n) => [
     NavItem(
-      label: l10n.text('adhkar'),
-      icon: Icons.menu_book_outlined,
-      activeIcon: Icons.menu_book_rounded,
-    ),
-    NavItem(
-      label: l10n.text('quran'),
-      icon: Icons.auto_stories_outlined,
-      activeIcon: Icons.auto_stories_rounded,
-    ),
-    NavItem(
       label: l10n.text('salati'),
       icon: Icons.mosque_outlined,
       activeIcon: Icons.mosque_rounded,
-      isCenter: true,
+    ),
+    NavItem(
+      label: 'الصلاة',
+      icon: Icons.mosque_outlined,
+      activeIcon: Icons.mosque_rounded,
+    ),
+    NavItem(
+      label: l10n.text('adhkar'),
+      icon: Icons.spa_outlined,
+      activeIcon: Icons.spa_rounded,
     ),
     NavItem(
       label: l10n.text('duas'),
@@ -104,9 +105,14 @@ class _HomeScreenState extends State<HomeScreen> {
       activeIcon: Icons.volunteer_activism_rounded,
     ),
     NavItem(
-      label: l10n.text('profile'),
-      icon: Icons.person_outline_rounded,
-      activeIcon: Icons.person_rounded,
+      label: 'الحلقات',
+      icon: Icons.podcasts_outlined,
+      activeIcon: Icons.podcasts_rounded,
+    ),
+    NavItem(
+      label: 'المزيد',
+      icon: Icons.more_vert_rounded,
+      activeIcon: Icons.more_vert_rounded,
     ),
   ];
 
@@ -210,10 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    await _selectTab(1);
-    if (!mounted) {
-      return;
-    }
     await Navigator.of(context).pushNamed(AppRouter.quranAyahReaderRoute);
   }
 
@@ -255,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (_currentIndex == 4 && _drawerAccountReturnIndex != null) {
+    if (_currentIndex == 5 && _drawerAccountReturnIndex != null) {
       final returnIndex = _drawerAccountReturnIndex!;
       _drawerAccountReturnIndex = null;
       _logBack('return_previous_tab');
@@ -335,30 +337,51 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      AdhkarScreen(
-        repository: widget.adhkarRepository,
-        progressRepository: widget.adhkarProgressRepository,
-        services: widget.services,
-        preferences: widget.preferences,
-      ),
-      QuranHubScreen(
-        repository: widget.quranProgressRepository,
-        services: widget.services,
-        preferences: widget.preferences,
+      SalatiDashboardScreen(
+        onOpenQuran: () =>
+            Navigator.of(context).pushNamed(AppRouter.quranRoute),
+        onOpenPrayer: () => unawaited(_selectTab(1)),
+        onOpenAdhkar: () => unawaited(_selectTab(2)),
+        onOpenDuas: () => unawaited(_selectTab(3)),
+        onOpenAi: () =>
+            Navigator.of(context).pushNamed(AppRouter.islamicAiRoute),
+        onOpenStore: () =>
+            Navigator.of(context).pushNamed(AppRouter.storeRoute),
+        onUnavailable: (feature) {
+          final kind = switch (feature) {
+            'القبلة' => IslamicProviderKind.qibla,
+            'المساجد' => IslamicProviderKind.mosques,
+            'الحديث' => IslamicProviderKind.hadith,
+            'القراء' => IslamicProviderKind.reciters,
+            'الدروس' || 'الحلقات' => IslamicProviderKind.lessons,
+            _ => null,
+          };
+          if (kind == null) return;
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => IslamicProviderScreen(kind: kind),
+            ),
+          );
+        },
       ),
       PrayerScreen(
         repository: widget.prayerSettingsRepository,
         preferences: widget.preferences,
         services: widget.services,
       ),
+      AdhkarScreen(
+        repository: widget.adhkarRepository,
+        progressRepository: widget.adhkarProgressRepository,
+        services: widget.services,
+        preferences: widget.preferences,
+      ),
       DuaScreen(services: widget.services, preferences: widget.preferences),
+      const IslamicProviderScreen(kind: IslamicProviderKind.lessons),
       AccountScreen(services: widget.services, preferences: widget.preferences),
     ];
 
-    final theme = Theme.of(context);
     final l10n = SalatiLocalizations.of(context);
     final navItems = _items(l10n);
-    final currentItem = navItems[_currentIndex];
 
     return StreamBuilder<AuthSession?>(
       stream: widget.services.authService.authStateChanges(),
@@ -378,40 +401,6 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: const Color(0xFFF7F8FB),
             extendBody: true,
             drawerEnableOpenDragGesture: false,
-            appBar: AppBar(
-              automaticallyImplyLeading: false,
-              backgroundColor: const Color(0xFFF7F8FB),
-              elevation: 0,
-              leadingWidth: 60,
-              scrolledUnderElevation: 0,
-              surfaceTintColor: Colors.transparent,
-              leading: _AccountDrawerButton(
-                session: session,
-                services: widget.services,
-              ),
-              title: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(currentItem.label),
-                  Text(
-                    session == null
-                        ? l10n.text('sessionPreparing')
-                        : session.isAnonymous
-                        ? l10n.text('freeAccount')
-                        : l10n.text('linkedAccount'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                _PrayerScoreButton(preferences: widget.preferences),
-                const SizedBox(width: 8),
-              ],
-            ),
             drawer: _MainDrawer(
               preferences: widget.preferences,
               services: widget.services,
@@ -423,11 +412,11 @@ class _HomeScreenState extends State<HomeScreen> {
               onOpenAccount: () async {
                 final previousIndex = _currentIndex;
                 Navigator.of(context).pop();
-                _drawerAccountReturnIndex = previousIndex == 4
+                _drawerAccountReturnIndex = previousIndex == 5
                     ? null
                     : previousIndex;
                 await _selectTab(
-                  4,
+                  5,
                   preserveDrawerReturn: _drawerAccountReturnIndex != null,
                 );
               },
@@ -447,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
               items: navItems,
               currentIndex: _currentIndex,
               onSelected: (index) {
-                if (index == 4) {
+                if (index == 5) {
                   _scaffoldKey.currentState?.openDrawer();
                   return;
                 }
@@ -621,258 +610,6 @@ class _MainDrawer extends StatelessWidget {
   }
 }
 
-class _AccountDrawerButton extends StatelessWidget {
-  const _AccountDrawerButton({required this.session, required this.services});
-
-  final AuthSession? session;
-  final AppServices services;
-
-  @override
-  Widget build(BuildContext context) {
-    final userStream = session == null
-        ? Stream<AppUser?>.value(null)
-        : services.userProfileRepository.watchCurrentUser(session!.uid);
-
-    return StreamBuilder<AppUser?>(
-      stream: userStream,
-      builder: (context, snapshot) {
-        final user = snapshot.data;
-        final isGuest = session == null || session!.isAnonymous;
-        final status = session == null
-            ? 'جارٍ التهيئة'
-            : isGuest
-            ? 'حساب مجاني'
-            : 'حساب مرتبط';
-        final shortName = user?.name.isNotEmpty == true ? user!.name : 'مستخدم';
-        return Builder(
-          builder: (context) {
-            return Padding(
-              padding: const EdgeInsetsDirectional.only(start: 8),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withValues(alpha: 0.55),
-                  ),
-                ),
-                child: IconButton(
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  icon: isGuest
-                      ? const Icon(Icons.person_outline_rounded)
-                      : CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.14),
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          child: Text(
-                            shortName.characters.first,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                  tooltip: status,
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _PrayerScoreButton extends StatelessWidget {
-  const _PrayerScoreButton({required this.preferences});
-
-  final AppPreferences preferences;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: preferences,
-      builder: (context, _) {
-        final summary = preferences.prayerScoreSummary;
-        final isNegative = summary.totalScore < 0;
-        final color = isNegative
-            ? Theme.of(context).colorScheme.error
-            : Colors.green;
-        final scoreText = _formatScore(summary.totalScore);
-        final label = summary.totalScore > 0 ? '+$scoreText' : scoreText;
-
-        return Padding(
-          padding: const EdgeInsetsDirectional.only(end: 4),
-          child: Tooltip(
-            message: 'نتيجة الصلاة',
-            child: InkWell(
-              customBorder: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
-              ),
-              onTap: () => _showScoreSheet(context, summary),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 72,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  color: color.withValues(alpha: isNegative ? 0.16 : 0.12),
-                  border: Border.all(color: color.withValues(alpha: 0.45)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.insights_rounded, size: 17, color: color),
-                    const SizedBox(width: 4),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showScoreSheet(
-    BuildContext context,
-    PrayerScoreSummary summary,
-  ) {
-    final theme = Theme.of(context);
-    final isNegative = summary.totalScore < 0;
-    final color = isNegative ? theme.colorScheme.error : Colors.green;
-    final conceptLabel = isNegative ? 'تقصير' : 'أثر طيب';
-
-    return showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'نتيجة الصلاة',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Container(
-                    width: 92,
-                    height: 92,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: color.withValues(alpha: 0.12),
-                      border: Border.all(
-                        color: color.withValues(alpha: 0.45),
-                        width: 1.4,
-                      ),
-                    ),
-                    child: Text(
-                      summary.totalScore.toString(),
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    conceptLabel,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _ScoreBreakdownTile(
-                  icon: Icons.check_circle_outline,
-                  label: 'صلوات مكتملة',
-                  value: summary.completedCount,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 10),
-                _ScoreBreakdownTile(
-                  icon: Icons.do_not_disturb_on_outlined,
-                  label: 'صلوات لم أصلها',
-                  value: summary.missedCount,
-                  color: theme.colorScheme.error,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  String _formatScore(double value) {
-    final formatted = value.toStringAsFixed(2);
-    return formatted.replaceFirst(RegExp(r'\.?0+$'), '');
-  }
-}
-
-class _ScoreBreakdownTile extends StatelessWidget {
-  const _ScoreBreakdownTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label)),
-          Text(
-            value.toString(),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _MainBottomNavigation extends StatelessWidget {
   const _MainBottomNavigation({
     required this.items,
@@ -886,23 +623,18 @@ class _MainBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-
     return SafeArea(
       top: false,
-      minimum: EdgeInsets.only(bottom: bottomInset > 0 ? 8 : 0),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE6EEF7)),
+          border: const Border(top: BorderSide(color: Color(0xFFF0EFED))),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1F2937).withValues(alpha: 0.10),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              color: const Color(0xFF1F2937).withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
@@ -911,66 +643,20 @@ class _MainBottomNavigation extends StatelessWidget {
             final item = items[index];
             final selected = index == currentIndex;
 
-            if (item.isCenter) {
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onSelected(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    height: 58,
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2F78BD),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF2F78BD,
-                          ).withValues(alpha: 0.24),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          selected ? item.activeIcon : item.icon,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
             return Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: () => onSelected(index),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         selected ? item.activeIcon : item.icon,
                         color: selected
-                            ? const Color(0xFF2F78BD)
-                            : const Color(0xFF9CA3AF),
+                            ? const Color(0xFF1677FF)
+                            : const Color(0xFF333333),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -979,12 +665,12 @@ class _MainBottomNavigation extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: selected
-                              ? const Color(0xFF2F78BD)
-                              : const Color(0xFF9CA3AF),
+                              ? const Color(0xFF1677FF)
+                              : const Color(0xFF333333),
                           fontWeight: selected
                               ? FontWeight.w700
                               : FontWeight.w500,
-                          fontSize: 11,
+                          fontSize: 10,
                         ),
                       ),
                     ],

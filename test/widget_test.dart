@@ -26,7 +26,7 @@ import 'package:salati/features/subscriptions/data/user_media_repository.dart';
 import 'package:salati/features/subscriptions/domain/entitlement_checker.dart';
 
 void main() {
-  testWidgets('renders main navigation with the centered Salati tab', (
+  testWidgets('renders the six-tab navigation from the new design', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -85,9 +85,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('صلاتي'), findsWidgets);
+    expect(find.text('الصلاة'), findsWidgets);
     expect(find.text('الأذكار'), findsWidgets);
-    expect(find.text('القرآن'), findsWidgets);
     expect(find.text('الأدعية'), findsWidgets);
-    expect(find.text('الملف'), findsWidgets);
+    expect(find.text('الحلقات'), findsWidgets);
+    expect(find.text('المزيد'), findsWidgets);
   });
 }

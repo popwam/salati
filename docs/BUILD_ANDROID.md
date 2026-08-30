@@ -1,0 +1,4 @@
+META_APP_ID=1046802327726002
+META_APP_SECRET=aa7fe6210eb5eaed49472c6a0424f357
+META_ENABLED=true
+META_REDIRECT_URI=https://pop.popwam.com/api/integrations/meta/callback
